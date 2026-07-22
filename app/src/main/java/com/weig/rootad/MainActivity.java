@@ -69,13 +69,16 @@ public final class MainActivity extends Activity {
         getWindow().setDecorFitsSystemWindows(false);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
         getWindow().setNavigationBarColor(Color.TRANSPARENT);
+        setContentView(buildScreen());
+
+        // Some vendor Android 16 builds do not create PhoneWindow's DecorView
+        // until setContentView(). Querying the controller earlier crashes launch.
         WindowInsetsController controller = getWindow().getInsetsController();
         if (controller != null) {
             int light = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS |
                     WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
             controller.setSystemBarsAppearance(dark ? 0 : light, light);
         }
-        setContentView(buildScreen());
     }
 
     @Override protected void onResume() { super.onResume(); refresh(); }
