@@ -29,6 +29,13 @@ class AndroidStartupSourceTests(unittest.TestCase):
         ):
             self.assertIn(profile, source)
 
+    def test_rule_updater_uses_android_compatible_manifest_reader(self) -> None:
+        source = (ROOT / "app/src/main/java/com/weig/rootad/RuleUpdater.java").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("Files.readString", source)
+        self.assertIn("Files.readAllBytes", source)
+
 
 if __name__ == "__main__":
     unittest.main()

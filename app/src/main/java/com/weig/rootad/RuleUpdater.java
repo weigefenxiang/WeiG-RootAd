@@ -59,8 +59,9 @@ final class RuleUpdater {
         if (!extracted.mkdir()) throw new IllegalStateException("Cannot create rule staging directory");
         extractDataOnly(archive, extracted);
 
-        JSONObject manifest = new JSONObject(Files.readString(
-                new File(extracted, "manifest.json").toPath(), StandardCharsets.UTF_8));
+        JSONObject manifest = new JSONObject(new String(
+                Files.readAllBytes(new File(extracted, "manifest.json").toPath()),
+                StandardCharsets.UTF_8));
         if (manifest.getInt("schema") != 3) throw new SecurityException("Unsupported rule schema");
         long version = manifest.getLong("version");
         if (version < 1) throw new SecurityException("Invalid rule version");
