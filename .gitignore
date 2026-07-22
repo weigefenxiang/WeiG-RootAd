@@ -1,0 +1,44 @@
+# Android / Gradle
+.gradle/
+.idea/
+.vscode/
+*.iml
+local.properties
+build/
+**/build/
+.externalNativeBuild/
+.cxx/
+captures/
+
+# 安装包与签名文件
+dist/
+*.apk
+*.aab
+*.apks
+*.xapk
+*.jks
+*.keystore
+keystore.properties
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+.coverage
+htmlcov/
+
+# 配置和日志
+.env
+.env.*
+*.log
+*.tmp
+*.bak
+
+# macOS / Windows
+.DS_Store
+Thumbs.db

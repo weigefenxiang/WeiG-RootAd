@@ -1,0 +1,6 @@
+id=weig_rootad
+name=Wei.G RootAd
+version=0.1.0
+versionCode=1
+author=Wei.G
+description=Lightweight root ad blocking for Magisk, KernelSU and APatch with independently updateable rules.

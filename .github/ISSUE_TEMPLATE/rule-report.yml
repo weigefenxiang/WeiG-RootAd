@@ -1,0 +1,45 @@
+name: Rule report / 规则反馈
+description: Report a missed ad, false positive, or reward-ad failure.
+title: "[Rule] "
+labels: ["rule-report"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category / 类型
+      options:
+        - Missed ad / 漏拦
+        - False positive or broken app / 误杀或应用异常
+        - Reward ad failure / 奖励广告失败
+        - Core failure / 核心故障
+    validations:
+      required: true
+  - type: input
+    id: package
+    attributes:
+      label: App package and version / 应用包名和版本
+      placeholder: com.example.app 1.2.3
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Android, Root, profile, and rule version / 环境
+      placeholder: Android 16, KernelSU, strict, 2026072102
+    validations:
+      required: true
+  - type: textarea
+    id: domains
+    attributes:
+      label: Exact suspected domains and results / 精确可疑域名及结果
+      description: Do not include cookies, account data, full private URLs, headers, or request bodies.
+      placeholder: sdk.example.com — blocked — reward failed
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction and one-rule test / 复现步骤与单条规则测试
+      description: Explain what changed after allowing or blocking the exact domain.
+    validations:
+      required: true

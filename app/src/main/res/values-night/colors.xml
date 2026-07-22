@@ -1,0 +1,9 @@
+<resources>
+    <color name="surface">#090D16</color>
+    <color name="surface_card">#121826</color>
+    <color name="text_primary">#F8FAFC</color>
+    <color name="text_secondary">#98A2B3</color>
+    <color name="accent">#4C8DFF</color>
+    <color name="accent_soft">#172A4D</color>
+    <color name="divider">#263246</color>
+</resources>

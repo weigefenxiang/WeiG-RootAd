@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "sources": [
+    {
+      "id": "weig-original",
+      "name": "Wei.G Original Rules",
+      "type": "local",
+      "path": "rules/vendor/wei.G/260723.txt",
+      "license": "GPL-3.0",
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "id": "weig-original",
+  "name": "Wei.G Original Rules",
+  "author": "Wei.G",
+  "license": "GPL-3.0",
+  "version": "20260723",
+  "files": {
+    "baseline": "260723.txt",
+    "compatibility": "放行白名单.prop",
+    "reward": "广告奖励.prop"
+  }
+}

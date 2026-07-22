@@ -1,0 +1,88 @@
+{
+  "schema": 2,
+  "version": 2026072301,
+  "profiles": {
+    "strict": {
+      "rules": 17041,
+      "domains_file": "strict.domains",
+      "hosts_file": "strict.hosts",
+      "domains_sha256": "0b07befe210b84403beb0b5ce27308d3164e9567d007dc1d05a8be5f9ad67e4e",
+      "hosts_sha256": "e93221da587b47ac469e2c80075d94fb62e3168ba49a5f7f02165ed89a974dd7"
+    },
+    "balanced": {
+      "rules": 17041,
+      "domains_file": "balanced.domains",
+      "hosts_file": "balanced.hosts",
+      "domains_sha256": "770be86c6e37752595109f2587a9fdcc50a725680c30c1af53835a6ade4f5535",
+      "hosts_sha256": "6fe199bfc67ff07e700ef937e9409fc8d77566e94a35ac5100e7d499046db589"
+    }
+  },
+  "reward": {
+    "rules": 74,
+    "domains_file": "reward.domains",
+    "domains_sha256": "f5afea5bb5a8c0932e64d6d089935f68dcb2f71b31b2ec17b4db3c1d6bd6e667"
+  },
+  "packs": [
+    {
+      "id": "reward.tencent",
+      "type": "reward_block",
+      "file": "reward-tencent.domains",
+      "title_en": "Tencent / QQ reward ads",
+      "title_zh": "腾讯 / QQ 奖励广告",
+      "rules": 38,
+      "default_enabled": false,
+      "domains_sha256": "065cb3660f488fe1bbf96694be7da205df7af6bea52c1e5c14853475b6317c28"
+    },
+    {
+      "id": "reward.wechat",
+      "type": "reward_block",
+      "file": "reward-wechat.domains",
+      "title_en": "WeChat reward ads",
+      "title_zh": "微信奖励广告",
+      "rules": 8,
+      "default_enabled": false,
+      "domains_sha256": "04b5a275589856a1f23c4ebec4f5d05d1ee6ce006fe04979e9df1b9af417318c"
+    },
+    {
+      "id": "reward.short-video",
+      "type": "reward_block",
+      "file": "reward-short-video.domains",
+      "title_en": "Short-video reward ads",
+      "title_zh": "短视频奖励广告",
+      "rules": 15,
+      "default_enabled": false,
+      "domains_sha256": "20504116faed4d6a35b478237c1f6ea31e78913f14ee604df06a1ec3bce39e00"
+    },
+    {
+      "id": "reward.other",
+      "type": "reward_block",
+      "file": "reward-other.domains",
+      "title_en": "Other reward ads",
+      "title_zh": "其他奖励广告",
+      "rules": 13,
+      "default_enabled": false,
+      "domains_sha256": "b6905c7b6087efa6648ba81187ca6627990f1c3979a3549dc169a71f41ea2462"
+    }
+  ],
+  "build": {
+    "vendor_rules": 17115,
+    "reward_removed_from_strict": 74,
+    "compatibility_removed_from_balanced": 0,
+    "strict_reward_overlap": 0,
+    "balanced_reward_overlap": 0
+  },
+  "manual_rule_control": true,
+  "reward_default_enabled": false,
+  "status_fields": [
+    "pending_reboot",
+    "compiled_rules",
+    "running_rules",
+    "disabled_rules",
+    "user_block_rules",
+    "user_allow_rules",
+    "reward_block_rules",
+    "reward_temporarily_allowed",
+    "reward_expires_at",
+    "enabled_packs"
+  ]
+}

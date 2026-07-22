@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/weig-rootad/issue-report.schema.json",
+  "title": "Wei.G RootAd issue report",
+  "type": "object",
+  "required": ["schema", "category", "package", "android", "profile", "rule_version", "domains"],
+  "properties": {
+    "schema": { "const": 1 },
+    "category": { "enum": ["missed_ad", "false_positive", "reward_failure", "module_failure"] },
+    "package": { "type": "string", "maxLength": 255 },
+    "app_version": { "type": "string", "maxLength": 100 },
+    "android": { "type": "integer", "minimum": 12, "maximum": 99 },
+    "profile": { "enum": ["strict", "balanced", "reward"] },
+    "rule_version": { "type": "integer", "minimum": 0 },
+    "description": { "type": "string", "maxLength": 4000 },
+    "domains": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "required": ["domain", "verdict"],
+        "properties": {
+          "domain": { "type": "string", "maxLength": 253 },
+          "verdict": { "enum": ["blocked", "allowed", "unknown"] },
+          "source": { "type": "string", "maxLength": 100 },
+          "timestamp": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,49 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace = "com.weig.rootad"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "com.weig.rootad"
+        minSdk = 31
+        targetSdk = 36
+        versionCode = 1
+        versionName = "0.1.0"
+        buildConfigField "String", "GITHUB_OWNER", '"weigefenxiang"'
+        buildConfigField "String", "CODE_REPOSITORY", '"WeiG-RootAd"'
+        buildConfigField "String", "RULES_REPOSITORY", '"WeiG-RootAd"'
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        release {
+            def keyFile = System.getenv("ROOTAD_KEYSTORE_FILE")
+            if (keyFile) {
+                storeFile file(keyFile)
+                storePassword System.getenv("ROOTAD_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ROOTAD_KEY_ALIAS")
+                keyPassword System.getenv("ROOTAD_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            if (System.getenv("ROOTAD_KEYSTORE_FILE")) signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}

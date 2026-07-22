@@ -1,0 +1,3 @@
+# Global compatibility exceptions go here, one exact domain per line.
+# These exceptions apply to every profile.
+

@@ -1,0 +1,27 @@
+#放行白名单示例
+#别填包名！！？
+#别填应用包名！！？
+#别填应用包名！！！！！！
+! 这里是域名！！！
+! 这里是域名！！！
+#小米云备份
+127.0.0.1 api.sec.miui.com
+0.0.0.0 a0.app.xiaomi.com
+a0.app.xiaomi.com
+globalapi.ad.xiaomi.com
+api.ad.xiaomi.com
+! 淘宝
+@@||s.click.taobao.com^
+@@||acs.m.taobao.com^
+@@||click.simba.taobao.com^
+@@||amdc.m.taobao.com^
+! 小爱同学
+tracker.ai.xiaomi.com
+! 小米金融
+@@||api.jr.mi.com^$important
+! QQ9.X获取服务器更新域名
+@@||qappcenterv6.3g.qq.com^$document
+@@||tdid.m.qq.com^$document
+@@||tangram.e.qq.com^$document
+
+

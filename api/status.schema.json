@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/weig-rootad/status.schema.json",
+  "title": "Wei.G RootAd runtime status",
+  "type": "object",
+  "required": [
+    "schema",
+    "protection_enabled",
+    "healthy",
+    "profile",
+    "rule_version",
+    "compiled_rules",
+    "running_rules",
+    "disabled_rules",
+    "user_block_rules",
+    "user_allow_rules",
+    "reward_expires_at"
+  ],
+  "properties": {
+    "schema": { "const": 1 },
+    "protection_enabled": { "type": "boolean" },
+    "healthy": { "type": "boolean" },
+    "profile": { "enum": ["strict", "balanced", "reward"] },
+    "rule_version": { "type": "integer", "minimum": 0 },
+    "compiled_rules": { "type": "integer", "minimum": 0 },
+    "running_rules": { "type": "integer", "minimum": 0 },
+    "disabled_rules": { "type": "integer", "minimum": 0 },
+    "user_block_rules": { "type": "integer", "minimum": 0 },
+    "user_allow_rules": { "type": "integer", "minimum": 0 },
+    "reward_expires_at": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}
