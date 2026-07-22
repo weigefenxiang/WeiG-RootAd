@@ -7,14 +7,14 @@
       "domains_file": "strict.domains",
       "hosts_file": "strict.hosts",
       "domains_sha256": "0b07befe210b84403beb0b5ce27308d3164e9567d007dc1d05a8be5f9ad67e4e",
-      "hosts_sha256": "e93221da587b47ac469e2c80075d94fb62e3168ba49a5f7f02165ed89a974dd7"
+      "hosts_sha256": "3f8700e46a31f77925bf90f6447621cb5566eb7d9da2d9d83c21c67ee8209bb4"
     },
     "balanced": {
       "rules": 17041,
       "domains_file": "balanced.domains",
       "hosts_file": "balanced.hosts",
       "domains_sha256": "770be86c6e37752595109f2587a9fdcc50a725680c30c1af53835a6ade4f5535",
-      "hosts_sha256": "6fe199bfc67ff07e700ef937e9409fc8d77566e94a35ac5100e7d499046db589"
+      "hosts_sha256": "c4c42a0326ddafc40cb626fefb62f75cb52437402274432b29843a537c578ffe"
     }
   },
   "reward": {
@@ -30,8 +30,8 @@
       "title_en": "Tencent / QQ reward ads",
       "title_zh": "腾讯 / QQ 奖励广告",
       "rules": 38,
-      "default_enabled": false,
-      "domains_sha256": "065cb3660f488fe1bbf96694be7da205df7af6bea52c1e5c14853475b6317c28"
+      "default_enabled": true,
+      "domains_sha256": "399e530c6ca32f5f5118cb71a899ab8657a8576709798b93e8dea15b3107e01f"
     },
     {
       "id": "reward.wechat",
@@ -40,8 +40,8 @@
       "title_en": "WeChat reward ads",
       "title_zh": "微信奖励广告",
       "rules": 8,
-      "default_enabled": false,
-      "domains_sha256": "04b5a275589856a1f23c4ebec4f5d05d1ee6ce006fe04979e9df1b9af417318c"
+      "default_enabled": true,
+      "domains_sha256": "8024e7b71fabf632825e1afbaf799d26026a17c73297f0307e29e255bb77dbaa"
     },
     {
       "id": "reward.short-video",
@@ -50,8 +50,8 @@
       "title_en": "Short-video reward ads",
       "title_zh": "短视频奖励广告",
       "rules": 15,
-      "default_enabled": false,
-      "domains_sha256": "20504116faed4d6a35b478237c1f6ea31e78913f14ee604df06a1ec3bce39e00"
+      "default_enabled": true,
+      "domains_sha256": "b0bd6c517fd65af31df159d5a86e8a03f2f415c6d26a3e2e415fa88781c578dc"
     },
     {
       "id": "reward.other",
@@ -60,19 +60,18 @@
       "title_en": "Other reward ads",
       "title_zh": "其他奖励广告",
       "rules": 13,
-      "default_enabled": false,
-      "domains_sha256": "b6905c7b6087efa6648ba81187ca6627990f1c3979a3549dc169a71f41ea2462"
+      "default_enabled": true,
+      "domains_sha256": "66354d80f59d3f61999af05b38e753c37bed66977051a3e70eeeb5c64168b803"
     }
   ],
   "build": {
     "vendor_rules": 17115,
     "reward_removed_from_strict": 74,
-    "compatibility_removed_from_balanced": 0,
     "strict_reward_overlap": 0,
     "balanced_reward_overlap": 0
   },
   "manual_rule_control": true,
-  "reward_default_enabled": false,
+  "reward_default_enabled": true,
   "status_fields": [
     "pending_reboot",
     "compiled_rules",

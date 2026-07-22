@@ -38,7 +38,7 @@ jobs:
       - name: Upload development artifact
         uses: actions/upload-artifact@v4
         with:
-          name: weig-rootad-core-only-dev
+          name: weig-zeroad-core-only-dev
           path: |
             dist/*.zip
             dist/SHA256SUMS
@@ -63,6 +63,6 @@ jobs:
         run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: weig-rootad-manager-debug
+          name: weig-zeroad-manager-debug
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14

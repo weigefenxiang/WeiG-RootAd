@@ -1,9 +1,5 @@
-# Profiles and optional packs
+# Offline fallback profiles
 
-- `strict`: the Wei.G baseline after every known reward-ad endpoint is removed.
-- `balanced`: strict minus maintained compatibility exceptions that overlap the baseline.
-- `reward`: not a profile. It is an optional blocking-pack union, disabled by default.
+The main repository bundles a small Wei.G-derived fallback for first boot only. It forcibly excludes every reward-ad domain. The independent `WeiG-ZeroAd-Rules` repository produces the live Domestic/Global Lean, Balanced, and Strict profiles.
 
-Selected reward packs are added at runtime. The ten-minute action temporarily removes only those selected packs. User allow/block/disabled lists remain the highest-priority runtime overrides.
-
-Generated files are written to `rules/generated/`. Do not edit generated files manually.
+Generated fallback files are written to `rules/generated/`; do not edit them manually.

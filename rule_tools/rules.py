@@ -92,7 +92,7 @@ def write_domains(path: Path, domains: Iterable[str], header: Iterable[str] = ()
 def write_hosts(path: Path, domains: Iterable[str], profile: str, version: int) -> None:
     normalized = sorted(set(domains))
     lines = [
-        "# Wei.G RootAd generated hosts file. DO NOT EDIT.",
+        "# Wei.G ZeroAd generated hosts file. DO NOT EDIT.",
         f"# profile={profile}",
         f"# rule_version={version}",
         f"# rule_count={len(normalized)}",
@@ -132,13 +132,14 @@ def compile_profiles(root: Path, version: int) -> dict[str, set[str]]:
     vendor = load_domains(rules / "vendor/wei.G/260723.txt")
     local_block = load_domains(rules / "local/block.txt")
     local_allow = load_domains(rules / "local/allow.txt")
-    balanced_allow = load_domains(rules / "vendor/wei.G/放行白名单.prop")
-    reward = load_domains(rules / "vendor/wei.G/广告奖励.prop")
+    reward = load_domains(rules / "vendor/wei.G/reward-ads.domains")
 
     # Reward endpoints are opt-in blocking packs. They must never leak into either
     # base profile, even when a future baseline source adds them again.
     strict = ((vendor | local_block) - local_allow) - reward
-    balanced = strict - balanced_allow
+    # These two files are only an offline compatibility fallback bundled with
+    # the core. The six live profiles come from WeiG-ZeroAd-Rules.
+    balanced = set(strict)
     profiles = {"strict": strict, "balanced": balanced}
 
     if strict & reward or balanced & reward:
@@ -184,14 +185,14 @@ def compile_profiles(root: Path, version: int) -> dict[str, set[str]]:
             generated / pack["file"],
             domains,
             header=(
-                "Optional reward-ad blocking pack; disabled by default.",
+                "Optional reward-ad blocking pack; enabled by default.",
                 f"pack_id={pack['id']}",
                 f"rule_version={version}",
                 f"rule_count={len(domains)}",
             ),
         )
 
-    all_domains = sorted(strict | balanced_allow | reward)
+    all_domains = sorted(strict | reward)
     index_lines = ["domain\tstrict\tbalanced\treward_block\tsource"]
     for domain in all_domains:
         index_lines.append(
@@ -201,7 +202,7 @@ def compile_profiles(root: Path, version: int) -> dict[str, set[str]]:
                     "1" if domain in strict else "0",
                     "1" if domain in balanced else "0",
                     "1" if domain in reward else "0",
-                    "Wei.G" if domain in vendor or domain in reward or domain in balanced_allow else "local",
+                    "Wei.G" if domain in vendor or domain in reward else "local",
                 )
             )
         )
@@ -232,19 +233,18 @@ def compile_profiles(root: Path, version: int) -> dict[str, set[str]]:
                 "title_en": pack["title_en"],
                 "title_zh": pack["title_zh"],
                 "rules": len(reward_pack_sets[pack["id"]]),
-                "default_enabled": False,
+                "default_enabled": True,
             }
             for pack in REWARD_PACKS
         ],
         "build": {
             "vendor_rules": len(vendor),
             "reward_removed_from_strict": len((vendor | local_block) & reward),
-            "compatibility_removed_from_balanced": len(strict & balanced_allow),
             "strict_reward_overlap": len(strict & reward),
             "balanced_reward_overlap": len(balanced & reward),
         },
         "manual_rule_control": True,
-        "reward_default_enabled": False,
+        "reward_default_enabled": True,
         "status_fields": [
             "pending_reboot",
             "compiled_rules",

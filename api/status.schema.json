@@ -1,33 +1,45 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.invalid/weig-rootad/status.schema.json",
-  "title": "Wei.G RootAd runtime status",
+  "$id": "https://example.invalid/weig-zeroad/status.schema.json",
+  "title": "Wei.G ZeroAd runtime status",
   "type": "object",
   "required": [
     "schema",
+    "pending_reboot",
     "protection_enabled",
     "healthy",
-    "profile",
+    "root_impl",
+    "cn_profile",
+    "global_profile",
     "rule_version",
     "compiled_rules",
     "running_rules",
     "disabled_rules",
     "user_block_rules",
     "user_allow_rules",
-    "reward_expires_at"
+    "reward_block_rules",
+    "reward_temporarily_allowed",
+    "reward_expires_at",
+    "enabled_packs"
   ],
   "properties": {
-    "schema": { "const": 1 },
+    "schema": { "const": 3 },
+    "pending_reboot": { "type": "boolean" },
     "protection_enabled": { "type": "boolean" },
     "healthy": { "type": "boolean" },
-    "profile": { "enum": ["strict", "balanced", "reward"] },
+    "root_impl": { "type": "string" },
+    "cn_profile": { "enum": ["lean", "balanced", "strict"] },
+    "global_profile": { "enum": ["off", "lean", "balanced", "strict"] },
     "rule_version": { "type": "integer", "minimum": 0 },
     "compiled_rules": { "type": "integer", "minimum": 0 },
     "running_rules": { "type": "integer", "minimum": 0 },
     "disabled_rules": { "type": "integer", "minimum": 0 },
     "user_block_rules": { "type": "integer", "minimum": 0 },
     "user_allow_rules": { "type": "integer", "minimum": 0 },
-    "reward_expires_at": { "type": "integer", "minimum": 0 }
+    "reward_block_rules": { "type": "integer", "minimum": 0 },
+    "reward_temporarily_allowed": { "type": "boolean" },
+    "reward_expires_at": { "type": "integer", "minimum": 0 },
+    "enabled_packs": { "type": "string" }
   },
   "additionalProperties": false
 }

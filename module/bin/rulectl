@@ -15,11 +15,13 @@ USER_DIR=$DATA_DIR/user
 BACKUP_DIR=$DATA_DIR/backups
 ACTIVE_HOSTS=$STATE_DIR/active.hosts
 PROFILE_STATE=$STATE_DIR/profile
+CN_PROFILE_STATE=$STATE_DIR/cn_profile
+GLOBAL_PROFILE_STATE=$STATE_DIR/global_profile
 PROTECTION_STATE=$STATE_DIR/protection
 REWARD_UNTIL_STATE=$STATE_DIR/reward_until
 RULE_VERSION_STATE=$STATE_DIR/rule_version
 ENABLED_PACKS_STATE=$USER_DIR/packs.enabled
-RULE_FILES="strict.domains balanced.domains reward.domains reward-tencent.domains reward-wechat.domains reward-short-video.domains reward-other.domains manifest.json packs.json"
+RULE_FILES="cn-lean.domains cn-balanced.domains cn-strict.domains global-lean.domains global-balanced.domains global-strict.domains reward-ads.domains reward-tencent.domains reward-wechat.domains reward-short-video.domains reward-other.domains manifest.json packs.json"
 
 fail() {
   echo "error: $1" >&2
@@ -31,9 +33,19 @@ ensure_state() {
   chmod 0700 "$DATA_DIR" "$STATE_DIR" "$USER_DIR" "$BACKUP_DIR" 2>/dev/null
   touch "$USER_DIR/allow.txt" "$USER_DIR/block.txt" "$USER_DIR/disabled.txt" "$ENABLED_PACKS_STATE"
   chmod 0600 "$USER_DIR/allow.txt" "$USER_DIR/block.txt" "$USER_DIR/disabled.txt" "$ENABLED_PACKS_STATE" 2>/dev/null
-  case "$(cat "$PROFILE_STATE" 2>/dev/null)" in
-    strict|balanced) ;;
-    *) echo strict > "$PROFILE_STATE" ;;
+  if [ ! -f "$STATE_DIR/profile_schema3" ]; then
+    echo lean > "$CN_PROFILE_STATE"
+    echo off > "$GLOBAL_PROFILE_STATE"
+    printf '%s\n' reward.tencent reward.wechat reward.short-video reward.other > "$ENABLED_PACKS_STATE"
+    touch "$STATE_DIR/profile_schema3"
+  fi
+  case "$(cat "$CN_PROFILE_STATE" 2>/dev/null)" in
+    lean|balanced|strict) ;;
+    *) echo lean > "$CN_PROFILE_STATE" ;;
+  esac
+  case "$(cat "$GLOBAL_PROFILE_STATE" 2>/dev/null)" in
+    off|lean|balanced|strict) ;;
+    *) echo off > "$GLOBAL_PROFILE_STATE" ;;
   esac
   [ -s "$PROTECTION_STATE" ] || echo 1 > "$PROTECTION_STATE"
   [ -s "$REWARD_UNTIL_STATE" ] || echo 0 > "$REWARD_UNTIL_STATE"
@@ -56,16 +68,25 @@ valid_domain() {
 
 profile_path() {
   current_rules=$DATA_DIR/rules/current
-  case "$1" in
-    strict|balanced)
-      if [ -f "$current_rules/$1.domains" ]; then
-        printf '%s/%s.domains\n' "$current_rules" "$1"
-      else
-        printf '%s/rules/%s.domains\n' "$MODDIR" "$1"
-      fi
-      ;;
+  region=$1
+  level=$2
+  case "$region:$level" in
+    cn:lean|cn:balanced|cn:strict|global:lean|global:balanced|global:strict) ;;
     *) return 1 ;;
   esac
+  name=$region-$level.domains
+  if [ -f "$current_rules/$name" ]; then
+    printf '%s/%s\n' "$current_rules" "$name"
+  elif [ -f "$MODDIR/rules/$name" ]; then
+    printf '%s/rules/%s\n' "$MODDIR" "$name"
+  elif [ "$region" = "cn" ]; then
+    # Upgrade-compatible fallback for a core package built before schema 3.
+    case "$level" in lean|balanced) fallback=balanced.domains ;; strict) fallback=strict.domains ;; esac
+    [ -f "$MODDIR/rules/$fallback" ] || return 1
+    printf '%s/rules/%s\n' "$MODDIR" "$fallback"
+  else
+    return 1
+  fi
 }
 
 pack_file_name() {
@@ -112,6 +133,7 @@ count_running() {
 
 validate_rule_file() {
   file=$1
+  minimum=${2:-1}
   [ -f "$file" ] && [ ! -L "$file" ] || fail "rule file is missing or unsafe"
   size=$(wc -c < "$file" 2>/dev/null)
   [ "$size" -le 33554432 ] || fail "rule file is too large"
@@ -121,18 +143,21 @@ validate_rule_file() {
   ' "$file")
   [ -z "$invalid" ] || fail "rule file contains an invalid domain"
   count=$(count_domains "$file")
-  [ "$count" -ge 1 ] && [ "$count" -le 500000 ] || fail "rule count is outside the safe range"
+  [ "$count" -ge "$minimum" ] && [ "$count" -le 500000 ] || fail "rule count is outside the safe range"
 }
 
 install_rule_directory() {
   source_dir=$1
   case "$source_dir" in
-    /data/local/tmp/weig_rootad-rules-*) ;;
+    /data/local/tmp/weig_zeroad-rules-*) ;;
     *) fail "unsafe staging directory" ;;
   esac
   [ -d "$source_dir" ] && [ ! -L "$source_dir" ] || fail "staging directory is missing"
-  for name in strict balanced reward reward-tencent reward-wechat reward-short-video reward-other; do
+  for name in cn-lean cn-balanced cn-strict global-lean global-balanced global-strict; do
     validate_rule_file "$source_dir/$name.domains"
+  done
+  for name in reward-ads reward-tencent reward-wechat reward-short-video reward-other; do
+    validate_rule_file "$source_dir/$name.domains" 0
   done
   for name in manifest.json packs.json; do
     [ -f "$source_dir/$name" ] && [ ! -L "$source_dir/$name" ] || fail "$name is missing"
@@ -140,16 +165,26 @@ install_rule_directory() {
   version=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$source_dir/manifest.json" | head -n 1)
   case "$version" in ''|*[!0-9]*) fail "invalid rule version" ;; esac
 
-  strict_count=$(count_domains "$source_dir/strict.domains")
-  balanced_count=$(count_domains "$source_dir/balanced.domains")
-  reward_count=$(count_domains "$source_dir/reward.domains")
-  [ "$strict_count" -ge "$balanced_count" ] || fail "balanced rules exceed strict rules"
-  overlap=$(awk 'NR == FNR { reward[$1] = 1; next } $1 in reward { count++ } END { print count + 0 }' \
-    "$source_dir/reward.domains" "$source_dir/strict.domains")
-  [ "$overlap" -eq 0 ] || fail "reward rules overlap strict profile"
-  overlap=$(awk 'NR == FNR { reward[$1] = 1; next } $1 in reward { count++ } END { print count + 0 }' \
-    "$source_dir/reward.domains" "$source_dir/balanced.domains")
-  [ "$overlap" -eq 0 ] || fail "reward rules overlap balanced profile"
+  missing=$(awk 'NR == FNR { parent[$1] = 1; next } !/^[[:space:]]*(#|$)/ && !($1 in parent) { count++ } END { print count + 0 }' \
+    "$source_dir/cn-balanced.domains" "$source_dir/cn-lean.domains")
+  [ "$missing" -eq 0 ] || fail "cn lean is not a subset of balanced"
+  missing=$(awk 'NR == FNR { parent[$1] = 1; next } !/^[[:space:]]*(#|$)/ && !($1 in parent) { count++ } END { print count + 0 }' \
+    "$source_dir/cn-strict.domains" "$source_dir/cn-balanced.domains")
+  [ "$missing" -eq 0 ] || fail "cn balanced is not a subset of strict"
+  missing=$(awk 'NR == FNR { parent[$1] = 1; next } !/^[[:space:]]*(#|$)/ && !($1 in parent) { count++ } END { print count + 0 }' \
+    "$source_dir/global-balanced.domains" "$source_dir/global-lean.domains")
+  [ "$missing" -eq 0 ] || fail "global lean is not a subset of balanced"
+  missing=$(awk 'NR == FNR { parent[$1] = 1; next } !/^[[:space:]]*(#|$)/ && !($1 in parent) { count++ } END { print count + 0 }' \
+    "$source_dir/global-strict.domains" "$source_dir/global-balanced.domains")
+  [ "$missing" -eq 0 ] || fail "global balanced is not a subset of strict"
+  overlap=$(awk 'NR == FNR { cn[$1] = 1; next } !/^[[:space:]]*(#|$)/ && $1 in cn { count++ } END { print count + 0 }' \
+    "$source_dir/cn-strict.domains" "$source_dir/global-strict.domains")
+  [ "$overlap" -eq 0 ] || fail "domestic and global rules overlap"
+  for profile in cn-lean cn-balanced cn-strict global-lean global-balanced global-strict; do
+    overlap=$(awk 'NR == FNR { reward[$1] = 1; next } !/^[[:space:]]*(#|$)/ && $1 in reward { count++ } END { print count + 0 }' \
+      "$source_dir/reward-ads.domains" "$source_dir/$profile.domains")
+    [ "$overlap" -eq 0 ] || fail "reward rules overlap $profile"
+  done
 
   rules_root=$DATA_DIR/rules
   pending=$rules_root/.pending.$$
@@ -219,9 +254,15 @@ publish_active() {
 
 build_active() {
   ensure_state
-  profile=$(cat "$PROFILE_STATE" 2>/dev/null)
-  profile_file=$(profile_path "$profile") || fail "invalid profile state"
-  [ -f "$profile_file" ] || fail "profile rules are missing: $profile"
+  cn_profile=$(cat "$CN_PROFILE_STATE" 2>/dev/null)
+  global_profile=$(cat "$GLOBAL_PROFILE_STATE" 2>/dev/null)
+  cn_file=$(profile_path cn "$cn_profile") || fail "invalid domestic profile state"
+  [ -f "$cn_file" ] || fail "domestic profile rules are missing: $cn_profile"
+  global_file=
+  if [ "$global_profile" != "off" ]; then
+    global_file=$(profile_path global "$global_profile") || fail "global profile is not installed: $global_profile"
+    [ -f "$global_file" ] || fail "global profile rules are missing: $global_profile"
+  fi
 
   tmp_dir=$STATE_DIR/.build.$$
   mkdir -p "$tmp_dir" || fail "cannot create temporary directory"
@@ -236,8 +277,12 @@ build_active() {
   cat "$USER_DIR/allow.txt" "$USER_DIR/disabled.txt" 2>/dev/null | \
     sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' | awk '!seen[$0]++' > "$skip_file"
   write_reward_union "$reward_file"
+  {
+    cat "$cn_file"
+    [ -z "$global_file" ] || cat "$global_file"
+  } | sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' | awk '!seen[$0]++' > "$tmp_dir/profiles"
   awk 'NR == FNR { reward[$1] = 1; next } !/^[[:space:]]*(#|$)/ && !($1 in reward) { print $1 }' \
-    "$reward_file" "$profile_file" > "$base_file"
+    "$reward_file" "$tmp_dir/profiles" > "$base_file"
   : > "$pack_file"
   now=$(date +%s)
   reward_until=$(cat "$REWARD_UNTIL_STATE" 2>/dev/null)
@@ -261,8 +306,9 @@ build_active() {
   running=$(count_domains "$filtered_file")
   version=$(cat "$RULE_VERSION_STATE" 2>/dev/null)
   {
-    echo "# Wei.G RootAd active hosts. Managed by rulectl."
-    echo "# profile=$profile"
+    echo "# WeiG ZeroAd active hosts. Managed by rulectl."
+    echo "# cn_profile=$cn_profile"
+    echo "# global_profile=$global_profile"
     echo "# rule_version=$version"
     echo "# rule_count=$running"
     echo "127.0.0.1 localhost"
@@ -301,11 +347,23 @@ domain_argument() {
 }
 
 set_profile() {
-  new_profile=$1
-  profile_path "$new_profile" >/dev/null || fail "unknown profile: $new_profile"
-  profile_file=$(profile_path "$new_profile") || fail "profile is not installed: $new_profile"
-  [ -f "$profile_file" ] || fail "profile is not installed: $new_profile"
-  echo "$new_profile" > "$PROFILE_STATE"
+  region=$1
+  new_profile=$2
+  case "$region" in
+    cn)
+      profile_path cn "$new_profile" >/dev/null || fail "unknown domestic profile: $new_profile"
+      echo "$new_profile" > "$CN_PROFILE_STATE"
+      ;;
+    global)
+      if [ "$new_profile" = "off" ]; then
+        echo off > "$GLOBAL_PROFILE_STATE"
+      else
+        profile_path global "$new_profile" >/dev/null || fail "global profile is not installed: $new_profile"
+        echo "$new_profile" > "$GLOBAL_PROFILE_STATE"
+      fi
+      ;;
+    *) fail "unknown profile region: $region" ;;
+  esac
   build_active
 }
 
@@ -333,10 +391,12 @@ start_reward_timer() {
   expires=$(( $(date +%s) + minutes * 60 ))
   echo "$expires" > "$REWARD_UNTIL_STATE"
   build_active
-  (
-    sleep $(( minutes * 60 ))
-    "$MODDIR/bin/rulectl" reward-expire "$expires" >/dev/null 2>&1
-  ) &
+  if [ "$TEST_MODE" != "1" ]; then
+    (
+      sleep $(( minutes * 60 ))
+      "$MODDIR/bin/rulectl" reward-expire "$expires" >/dev/null 2>&1
+    ) &
+  fi
   echo "reward ads allowed until $expires"
 }
 
@@ -366,13 +426,21 @@ resume_reward_timer() {
 
 status_json() {
   ensure_state
-  profile=$(cat "$PROFILE_STATE" 2>/dev/null)
-  profile_file=$(profile_path "$profile" 2>/dev/null)
+  cn_profile=$(cat "$CN_PROFILE_STATE" 2>/dev/null)
+  global_profile=$(cat "$GLOBAL_PROFILE_STATE" 2>/dev/null)
+  cn_file=$(profile_path cn "$cn_profile" 2>/dev/null)
+  global_file=
+  [ "$global_profile" = "off" ] || global_file=$(profile_path global "$global_profile" 2>/dev/null)
   reward_all_tmp=$STATE_DIR/.reward-all.$$
+  profile_all_tmp=$STATE_DIR/.profiles-all.$$
   write_reward_union "$reward_all_tmp"
+  {
+    cat "$cn_file" 2>/dev/null
+    [ -z "$global_file" ] || cat "$global_file" 2>/dev/null
+  } | sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' | awk '!seen[$0]++' > "$profile_all_tmp"
   compiled=$(awk 'NR == FNR { reward[$1] = 1; next } !/^[[:space:]]*(#|$)/ && !($1 in reward) { count++ } END { print count + 0 }' \
-    "$reward_all_tmp" "$profile_file")
-  rm -f "$reward_all_tmp"
+    "$reward_all_tmp" "$profile_all_tmp")
+  rm -f "$reward_all_tmp" "$profile_all_tmp"
   running=$(count_running)
   disabled=$(count_domains "$USER_DIR/disabled.txt")
   user_block=$(count_domains "$USER_DIR/block.txt")
@@ -404,8 +472,8 @@ status_json() {
   command -v magisk >/dev/null 2>&1 && root_impl=magisk
   command -v ksud >/dev/null 2>&1 && root_impl=kernelsu
   command -v apd >/dev/null 2>&1 && root_impl=apatch
-  printf '{"schema":2,"pending_reboot":%s,"protection_enabled":%s,"healthy":%s,"root_impl":"%s","profile":"%s","rule_version":%s,"compiled_rules":%s,"running_rules":%s,"disabled_rules":%s,"user_block_rules":%s,"user_allow_rules":%s,"reward_block_rules":%s,"reward_temporarily_allowed":%s,"reward_expires_at":%s,"enabled_packs":"%s"}\n' \
-    "$pending_reboot" "$protection" "$healthy" "$root_impl" "$profile" "$version" "$compiled" "$running" "$disabled" "$user_block" "$user_allow" "$reward_block" "$reward_active" "$reward_until" "$enabled_packs"
+  printf '{"schema":3,"pending_reboot":%s,"protection_enabled":%s,"healthy":%s,"root_impl":"%s","cn_profile":"%s","global_profile":"%s","rule_version":%s,"compiled_rules":%s,"running_rules":%s,"disabled_rules":%s,"user_block_rules":%s,"user_allow_rules":%s,"reward_block_rules":%s,"reward_temporarily_allowed":%s,"reward_expires_at":%s,"enabled_packs":"%s"}\n' \
+    "$pending_reboot" "$protection" "$healthy" "$root_impl" "$cn_profile" "$global_profile" "$version" "$compiled" "$running" "$disabled" "$user_block" "$user_allow" "$reward_block" "$reward_active" "$reward_until" "$enabled_packs"
 }
 
 ensure_state
@@ -423,9 +491,20 @@ case "$command" in
     build_active
     status_json
     ;;
+  cn-profile)
+    [ -n "${2:-}" ] || fail "domestic profile name is required"
+    set_profile cn "$2"
+    status_json
+    ;;
+  global-profile)
+    [ -n "${2:-}" ] || fail "global profile name is required"
+    set_profile global "$2"
+    status_json
+    ;;
   profile)
+    # Backward-compatible command for older manager versions.
     [ -n "${2:-}" ] || fail "profile name is required"
-    set_profile "$2"
+    case "$2" in strict|balanced) set_profile cn "$2" ;; *) fail "unknown legacy profile: $2" ;; esac
     status_json
     ;;
   reward)

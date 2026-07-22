@@ -30,7 +30,7 @@ final class ApkInstaller {
             Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                     Uri.parse("package:" + activity.getPackageName()));
             activity.startActivity(settings);
-            callback.completed("Allow updates from Wei.G RootAd, then tap update again.", false);
+            callback.completed("Allow updates from WeiG ZeroAd, then tap update again.", false);
             return;
         }
         BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -67,7 +67,7 @@ final class ApkInstaller {
         int sessionId = installer.createSession(params);
         try (PackageInstaller.Session session = installer.openSession(sessionId);
              FileInputStream input = new FileInputStream(apk);
-             OutputStream output = session.openWrite("WeiGRootAd.apk", 0, apk.length())) {
+             OutputStream output = session.openWrite("WeiGZeroAd.apk", 0, apk.length())) {
             byte[] buffer = new byte[16 * 1024];
             int read;
             while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);

@@ -1,16 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.invalid/weig-rootad/issue-report.schema.json",
-  "title": "Wei.G RootAd issue report",
+  "$id": "https://example.invalid/weig-zeroad/issue-report.schema.json",
+  "title": "Wei.G ZeroAd issue report",
   "type": "object",
-  "required": ["schema", "category", "package", "android", "profile", "rule_version", "domains"],
+  "required": ["schema", "category", "package", "android", "cn_profile", "global_profile", "rule_version", "domains"],
   "properties": {
     "schema": { "const": 1 },
     "category": { "enum": ["missed_ad", "false_positive", "reward_failure", "module_failure"] },
     "package": { "type": "string", "maxLength": 255 },
     "app_version": { "type": "string", "maxLength": 100 },
     "android": { "type": "integer", "minimum": 12, "maximum": 99 },
-    "profile": { "enum": ["strict", "balanced", "reward"] },
+    "cn_profile": { "enum": ["lean", "balanced", "strict"] },
+    "global_profile": { "enum": ["off", "lean", "balanced", "strict"] },
     "rule_version": { "type": "integer", "minimum": 0 },
     "description": { "type": "string", "maxLength": 4000 },
     "domains": {

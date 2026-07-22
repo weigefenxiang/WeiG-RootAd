@@ -73,7 +73,7 @@ final class ReleaseClient {
         connection.setConnectTimeout(15_000);
         connection.setReadTimeout(30_000);
         connection.setRequestProperty("Accept", "application/vnd.github+json");
-        connection.setRequestProperty("User-Agent", "WeiG-RootAd/" + BuildConfig.VERSION_NAME);
+        connection.setRequestProperty("User-Agent", "WeiG-ZeroAd/" + BuildConfig.VERSION_NAME);
         connection.setInstanceFollowRedirects(true);
         int code = connection.getResponseCode();
         if (code < 200 || code >= 300) throw new IllegalStateException("GitHub returned HTTP " + code);

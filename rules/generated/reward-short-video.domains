@@ -1,4 +1,4 @@
-# Optional reward-ad blocking pack; disabled by default.
+# Optional reward-ad blocking pack; enabled by default.
 # pack_id=reward.short-video
 # rule_version=2026072301
 # rule_count=15

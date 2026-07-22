@@ -42,7 +42,9 @@ public final class MainActivity extends Activity {
     private TextView protectionText, countText, detailText, updateText;
     private TextView actionText, rewardCountdown;
     private ProgressBar progress, actionProgress;
-    private Button protectionButton, strictButton, balancedButton, rewardButton;
+    private Button protectionButton, rewardButton;
+    private Button cnLeanButton, cnBalancedButton, cnStrictButton;
+    private Button globalOffButton, globalLeanButton, globalBalancedButton, globalStrictButton;
     private CheckBox rewardTencent, rewardWechat, rewardShortVideo, rewardOther;
     private RootStatus latest;
     private boolean updatingUi;
@@ -106,7 +108,7 @@ public final class MainActivity extends Activity {
 
         TextView brand = text("Wei.G", 14, accent, Typeface.BOLD);
         body.addView(brand);
-        TextView title = text("RootAd", 34, primary, Typeface.BOLD);
+        TextView title = text("ZeroAd", 34, primary, Typeface.BOLD);
         body.addView(title, margins(-2, 2, 0, 20));
 
         LinearLayout hero = card();
@@ -130,22 +132,38 @@ public final class MainActivity extends Activity {
         hero.addView(protectionButton, margins(0, 18, 0, 0));
         body.addView(hero);
 
-        body.addView(section(t("过滤模式", "Filter profile")));
+        body.addView(section(t("过滤模式", "Filter profiles")));
         LinearLayout profiles = card();
-        profiles.addView(text(t("严格与平衡都默认排除奖励广告规则；奖励拦截由下方单独控制。", "Both profiles exclude reward-ad rules by default; control reward blocking separately below."),
+        profiles.addView(text(t("境内和境外分别选择强度；六个普通配置均不含奖励广告域名。", "Choose domestic and global strength separately. All normal profiles exclude reward-ad domains."),
                 14, secondary, Typeface.NORMAL));
-        LinearLayout profileButtons = row();
-        strictButton = actionButton(t("严格", "Strict"), v -> command("profile strict", t("正在切换到严格模式…", "Switching to Strict…")));
-        balancedButton = actionButton(t("平衡", "Balanced"), v -> command("profile balanced", t("正在切换到平衡模式…", "Switching to Balanced…")));
-        profileButtons.addView(strictButton, weightMargins(1, 0, 14, 6, 0));
-        profileButtons.addView(balancedButton, weightMargins(1, 0, 14, 0, 0));
-        profiles.addView(profileButtons);
+        profiles.addView(text(t("境内规则", "Domestic rules"), 14, primary, Typeface.BOLD), margins(0, 14, 0, 0));
+        LinearLayout cnButtons = row();
+        cnLeanButton = actionButton(t("精简", "Lean"), v -> command("cn-profile lean", t("正在切换境内精简…", "Selecting domestic Lean…")));
+        cnBalancedButton = actionButton(t("平衡", "Balanced"), v -> command("cn-profile balanced", t("正在切换境内平衡…", "Selecting domestic Balanced…")));
+        cnStrictButton = actionButton(t("严格", "Strict"), v -> command("cn-profile strict", t("正在切换境内严格…", "Selecting domestic Strict…")));
+        cnButtons.addView(cnLeanButton, weightMargins(1, 0, 10, 5, 0));
+        cnButtons.addView(cnBalancedButton, weightMargins(1, 0, 10, 5, 0));
+        cnButtons.addView(cnStrictButton, weightMargins(1, 0, 10, 0, 0));
+        profiles.addView(cnButtons);
+        profiles.addView(text(t("境外规则", "Global rules"), 14, primary, Typeface.BOLD), margins(0, 16, 0, 0));
+        LinearLayout globalTop = row();
+        globalOffButton = actionButton(t("关闭", "Off"), v -> command("global-profile off", t("正在关闭境外规则…", "Disabling global rules…")));
+        globalLeanButton = actionButton(t("精简", "Lean"), v -> command("global-profile lean", t("正在切换境外精简…", "Selecting global Lean…")));
+        globalTop.addView(globalOffButton, weightMargins(1, 0, 10, 5, 0));
+        globalTop.addView(globalLeanButton, weightMargins(1, 0, 10, 0, 0));
+        profiles.addView(globalTop);
+        LinearLayout globalBottom = row();
+        globalBalancedButton = actionButton(t("平衡", "Balanced"), v -> command("global-profile balanced", t("正在切换境外平衡…", "Selecting global Balanced…")));
+        globalStrictButton = actionButton(t("严格", "Strict"), v -> command("global-profile strict", t("正在切换境外严格…", "Selecting global Strict…")));
+        globalBottom.addView(globalBalancedButton, weightMargins(1, 0, 8, 5, 0));
+        globalBottom.addView(globalStrictButton, weightMargins(1, 0, 8, 0, 0));
+        profiles.addView(globalBottom);
         body.addView(profiles);
 
         body.addView(section(t("奖励广告拦截", "Reward-ad blocking")));
         LinearLayout rewards = card();
-        rewards.addView(text(t("默认不拦截。勾选后才加入对应奖励广告规则；需要领取奖励时可临时放行。",
-                "Disabled by default. Selected packs are blocked; temporarily allow them when you need a reward."),
+        rewards.addView(text(t("默认全部拦截，且始终与普通规则分离；需要领取奖励时可临时放行。",
+                "All packs are blocked by default and remain separate from normal rules. Temporarily allow them when needed."),
                 14, secondary, Typeface.NORMAL));
         rewardTencent = packCheckBox(t("腾讯 / QQ 奖励广告", "Tencent / QQ reward ads"), "reward.tencent");
         rewardWechat = packCheckBox(t("微信奖励广告", "WeChat reward ads"), "reward.wechat");
@@ -203,7 +221,7 @@ public final class MainActivity extends Activity {
         support.addView(uninstall, margins(0, 10, 0, 0));
         body.addView(support);
 
-        body.addView(text("Wei.G RootAd  " + BuildConfig.VERSION_NAME + "  ·  Android 12–16",
+        body.addView(text("WeiG ZeroAd  " + BuildConfig.VERSION_NAME + "  ·  Android 12–16",
                 12, secondary, Typeface.NORMAL), margins(0, 22, 0, 0));
         return scroll;
     }
@@ -244,15 +262,17 @@ public final class MainActivity extends Activity {
         protectionButton.setEnabled(true);
         protectionText.setText(status.protection() ? t("保护运行中", "Protection active") : t("保护已关闭", "Protection disabled"));
         countText.setText(String.format(Locale.US, "%,d", status.running()));
-        String mode = status.profile().equals("balanced") ? t("平衡", "Balanced") : t("严格", "Strict");
-        detailText.setText(mode + " · " + status.root() + " · rules " + status.ruleVersion() +
+        String cnMode = profileLabel(status.cnProfile());
+        String globalMode = status.globalProfile().equals("off") ? t("境外关闭", "Global off") :
+                t("境外", "Global ") + profileLabel(status.globalProfile());
+        detailText.setText(t("境内", "Domestic ") + cnMode + " · " + globalMode + " · " + status.root() +
+                " · rules " + status.ruleVersion() +
                 "\n" + t("关闭 ", "disabled ") + status.disabled() + " · " +
                 t("自定义拦截 ", "custom block ") + status.customBlock() + " · " +
                 t("自定义放行 ", "custom allow ") + status.customAllow() +
                 "\n" + t("奖励广告拦截 ", "reward blocks ") + status.rewardBlock());
         protectionButton.setText(status.protection() ? t("关闭保护", "Disable protection") : t("开启保护", "Enable protection"));
-        styleChoice(strictButton, status.profile().equals("strict"));
-        styleChoice(balancedButton, status.profile().equals("balanced"));
+        styleProfileButtons(status.cnProfile(), status.globalProfile());
         updatingUi = true;
         rewardTencent.setChecked(status.packEnabled("reward.tencent"));
         rewardWechat.setChecked(status.packEnabled("reward.wechat"));
@@ -281,15 +301,22 @@ public final class MainActivity extends Activity {
 
     private void command(String command, String message) {
         busy(true, message);
-        if (command.equals("profile strict")) {
-            styleChoice(strictButton, true);
-            styleChoice(balancedButton, false);
-        } else if (command.equals("profile balanced")) {
-            styleChoice(strictButton, false);
-            styleChoice(balancedButton, true);
+        if (command.startsWith("cn-profile ")) {
+            styleProfileButtons(command.substring("cn-profile ".length()),
+                    latest == null ? "off" : latest.globalProfile());
+        } else if (command.startsWith("global-profile ")) {
+            styleProfileButtons(latest == null ? "lean" : latest.cnProfile(),
+                    command.substring("global-profile ".length()));
         } else if (command.equals("protection-on") || command.equals("protection-off")) {
             protectionText.setText(message);
             protectionButton.setText(t("处理中…", "Working…"));
+        } else if (command.equals("reward 10")) {
+            rewardButton.setText(t("正在临时放行…", "Allowing temporarily…"));
+            rewardCountdown.setText(t("正在应用，完成后开始倒计时", "Applying; countdown starts when ready"));
+            rewardCountdown.setVisibility(View.VISIBLE);
+        } else if (command.equals("reward-stop")) {
+            rewardButton.setText(t("正在恢复拦截…", "Restoring blocking…"));
+            rewardCountdown.setVisibility(View.GONE);
         }
         protectionButton.setEnabled(false);
         setRuleControlsEnabled(false);
@@ -348,7 +375,7 @@ public final class MainActivity extends Activity {
             try {
                 RuleUpdater.Result result = RuleUpdater.installLatest(this);
                 main.post(() -> { toast(t("规则已更新：", "Rules updated: ") + result.version()); refresh(); });
-            } catch (Exception error) { main.post(() -> failed(error)); }
+            } catch (Exception error) { main.post(() -> rulesUpdateFailed(error)); }
         });
     }
 
@@ -357,7 +384,7 @@ public final class MainActivity extends Activity {
         worker.execute(() -> {
             try {
                 ReleaseClient.Release release = ReleaseClient.latestWithAsset(
-                        BuildConfig.CODE_REPOSITORY, "rootad-manager", ".apk");
+                        BuildConfig.CODE_REPOSITORY, "zeroad-manager", ".apk");
                 ReleaseClient.Asset apk = release.endingWith(".apk");
                 if (apk == null) throw new IllegalStateException("Release has no APK asset");
                 File file = ReleaseClient.download(this, apk, 80L * 1024 * 1024);
@@ -402,7 +429,9 @@ public final class MainActivity extends Activity {
                 "- App: " + BuildConfig.VERSION_NAME + "\n- Android: " + android.os.Build.VERSION.RELEASE +
                 "\n- Device: " + android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL +
                 (status == null ? "" : "\n- Root: " + status.root() + "\n- Rule version: " + status.ruleVersion() +
-                        "\n- Profile: " + status.profile() + "\n- Running rules: " + status.running()) +
+                        "\n- Domestic profile: " + status.cnProfile() +
+                        "\n- Global profile: " + status.globalProfile() +
+                        "\n- Running rules: " + status.running()) +
                 "\n\nDo not attach account tokens, cookies, or full HTTPS payloads.";
         String url = "https://github.com/" + BuildConfig.GITHUB_OWNER + "/" + BuildConfig.CODE_REPOSITORY +
                 "/issues/new?title=" + encode(title) + "&body=" + encode(body);
@@ -411,8 +440,8 @@ public final class MainActivity extends Activity {
 
     private void confirmUninstall() {
         new AlertDialog.Builder(this).setTitle(t("完整卸载", "Complete uninstall"))
-                .setMessage(t("将关闭 hosts 挂载，并删除核心模块、官方规则、自定义规则和全部 RootAd 状态。APK 随后交给系统卸载。",
-                        "This removes the hosts mount, core module, official and custom rules, and all RootAd state. Android will then remove the app."))
+                .setMessage(t("将关闭 hosts 挂载，并删除核心模块、官方规则、自定义规则和全部 ZeroAd 状态。APK 随后交给系统卸载。",
+                        "This removes the hosts mount, core module, official and custom rules, and all ZeroAd state. Android will then remove the app."))
                 .setPositiveButton(t("全部删除", "Remove everything"), (d, w) -> fullUninstall())
                 .setNegativeButton(android.R.string.cancel, null).show();
     }
@@ -422,7 +451,8 @@ public final class MainActivity extends Activity {
         worker.execute(() -> {
             RootShell.Result result = RootShell.runControl("cleanup-mount");
             RootShell.Result remove = RootShell.run(
-                    "rm -rf /data/adb/weig_rootad /data/adb/modules/weig_rootad " +
+                    "rm -rf /data/adb/weig_rootad /data/adb/weig_rootad-user-backup " +
+                    "/data/adb/modules/weig_rootad " +
                     "/data/adb/modules_update/weig_rootad");
             main.post(() -> {
                 busy(false, null);
@@ -433,6 +463,15 @@ public final class MainActivity extends Activity {
     }
 
     private void failed(Exception error) { busy(false, null); toast(error.getMessage() == null ? error.toString() : error.getMessage()); }
+    private void rulesUpdateFailed(Exception error) {
+        busy(false, null);
+        String detail = error.getMessage() == null ? error.toString() : error.getMessage();
+        toast(t(
+                "规则更新失败，已继续使用当前规则；首次安装会使用 Wei.G 20260723 基础规则。原因：",
+                "Rule update failed. Current rules were kept; first install uses the Wei.G " +
+                        "20260723 base. Reason: ") + detail);
+        refresh();
+    }
     private void busy(boolean value, String message) {
         progress.setVisibility(value ? View.VISIBLE : View.GONE);
         actionProgress.setVisibility(value ? View.VISIBLE : View.GONE);
@@ -464,9 +503,14 @@ public final class MainActivity extends Activity {
         return checkBox;
     }
     private void setRuleControlsEnabled(boolean enabled) {
-        if (strictButton == null) return;
-        strictButton.setEnabled(enabled);
-        balancedButton.setEnabled(enabled);
+        if (cnLeanButton == null) return;
+        cnLeanButton.setEnabled(enabled);
+        cnBalancedButton.setEnabled(enabled);
+        cnStrictButton.setEnabled(enabled);
+        globalOffButton.setEnabled(enabled);
+        globalLeanButton.setEnabled(enabled);
+        globalBalancedButton.setEnabled(enabled);
+        globalStrictButton.setEnabled(enabled);
         rewardTencent.setEnabled(enabled);
         rewardWechat.setEnabled(enabled);
         rewardShortVideo.setEnabled(enabled);
@@ -476,6 +520,23 @@ public final class MainActivity extends Activity {
     private void styleChoice(Button button, boolean selected) {
         button.setTextColor(selected ? Color.WHITE : accent);
         button.setBackground(round(selected ? accent : accentSoft, 14, selected ? accent : divider));
+    }
+    private String profileLabel(String value) {
+        return switch (value) {
+            case "lean" -> t("精简", "Lean");
+            case "balanced" -> t("平衡", "Balanced");
+            case "strict" -> t("严格", "Strict");
+            default -> value;
+        };
+    }
+    private void styleProfileButtons(String cn, String global) {
+        styleChoice(cnLeanButton, cn.equals("lean"));
+        styleChoice(cnBalancedButton, cn.equals("balanced"));
+        styleChoice(cnStrictButton, cn.equals("strict"));
+        styleChoice(globalOffButton, global.equals("off"));
+        styleChoice(globalLeanButton, global.equals("lean"));
+        styleChoice(globalBalancedButton, global.equals("balanced"));
+        styleChoice(globalStrictButton, global.equals("strict"));
     }
     private Button button(String value, boolean filled) { Button button = new Button(this); button.setText(value); button.setTextSize(14); button.setAllCaps(false); button.setTypeface(Typeface.DEFAULT, Typeface.BOLD); button.setTextColor(filled ? Color.WHITE : accent); button.setGravity(Gravity.CENTER); button.setMinHeight(dp(48)); button.setBackground(round(filled ? accent : accentSoft, 14, filled ? accent : divider)); return button; }
     private GradientDrawable round(int fill, int radius, int stroke) { GradientDrawable value = new GradientDrawable(); value.setColor(fill); value.setCornerRadius(dp(radius)); value.setStroke(dp(1), stroke); return value; }

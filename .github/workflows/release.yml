@@ -62,6 +62,21 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.ROOTAD_KEYSTORE_BASE64 }}
         run: echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/rootad-release.jks"
+      - name: Download latest verified live rules or select offline fallback
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist/rules-release
+          RULES_ZIP=""
+          if gh release download --repo "$GITHUB_REPOSITORY_OWNER/WeiG-ZeroAd-Rules" \
+            --pattern "WeiG-ZeroAd-Rules.zip" --dir dist/rules-release && \
+            test -f dist/rules-release/WeiG-ZeroAd-Rules.zip; then
+            RULES_ZIP="dist/rules-release/WeiG-ZeroAd-Rules.zip"
+          else
+            rm -f dist/rules-release/WeiG-ZeroAd-Rules.zip
+            echo "::warning title=Rules release unavailable::Using the bundled Wei.G 20260723 base rules."
+          fi
+          echo "RULES_ZIP=$RULES_ZIP" >> "$GITHUB_ENV"
       - name: Build signed APK, recommended package, and core-only package
         env:
           ROOTAD_KEYSTORE_FILE: ${{ runner.temp }}/rootad-release.jks
@@ -75,13 +90,19 @@ jobs:
           "$APKSIGNER" verify --verbose app/build/outputs/apk/release/app-release.apk
           python -m rule_tools.build_rules
           python -m unittest discover -s tests -v
-          APK="dist/WeiG-RootAd-Manager-${ASSET_TAG}.apk"
-          PACKAGE="dist/WeiG-RootAd-${ASSET_TAG}.zip"
-          CORE="dist/WeiG-RootAd-${ASSET_TAG}-core-only.zip"
+          APK="dist/WeiG-ZeroAd-Manager-${ASSET_TAG}.apk"
+          PACKAGE="dist/WeiG-ZeroAd-${ASSET_TAG}.zip"
+          CORE="dist/WeiG-ZeroAd-${ASSET_TAG}-core-only.zip"
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk "$APK"
-          python -m rule_tools.build_module --output "$CORE"
-          python -m rule_tools.build_module --output "$PACKAGE" --manager-apk "$APK"
+          RULE_ARGS=(--allow-rules-fallback)
+          if [ -n "${RULES_ZIP:-}" ]; then
+            RULE_ARGS+=(--rules-zip "$RULES_ZIP")
+          fi
+          python -m rule_tools.build_module --output "$CORE" \
+            "${RULE_ARGS[@]}"
+          python -m rule_tools.build_module --output "$PACKAGE" --manager-apk "$APK" \
+            "${RULE_ARGS[@]}"
           sha256sum "$PACKAGE" "$CORE" "$APK" > dist/RELEASE_SHA256SUMS
           if [ "$IS_PRERELEASE" = "true" ]; then
             sed -e "s/{{VERSION}}/$APP_VERSION/g" -e "s/{{RUN_NUMBER}}/$GITHUB_RUN_NUMBER/g" \
@@ -103,14 +124,14 @@ jobs:
               gh release upload "$RELEASE_TAG" "$PACKAGE" "$CORE" "$APK" dist/RELEASE_SHA256SUMS --clobber
               gh release edit "$RELEASE_TAG" --prerelease \
                 --notes-file dist/RELEASE_NOTES.md \
-                --title "Wei.G RootAd Test $APP_VERSION (#$GITHUB_RUN_NUMBER)"
+                --title "Wei.G ZeroAd Test $APP_VERSION (#$GITHUB_RUN_NUMBER)"
             else
               gh release create "$RELEASE_TAG" "$PACKAGE" "$CORE" "$APK" dist/RELEASE_SHA256SUMS \
                 --target "$GITHUB_SHA" --prerelease \
                 --notes-file dist/RELEASE_NOTES.md \
-                --title "Wei.G RootAd Test $APP_VERSION (#$GITHUB_RUN_NUMBER)"
+                --title "Wei.G ZeroAd Test $APP_VERSION (#$GITHUB_RUN_NUMBER)"
             fi
           else
             gh release create "$RELEASE_TAG" "$PACKAGE" "$CORE" "$APK" dist/RELEASE_SHA256SUMS \
-              --notes-file dist/RELEASE_NOTES.md --title "Wei.G RootAd $RELEASE_TAG"
+              --notes-file dist/RELEASE_NOTES.md --title "Wei.G ZeroAd $RELEASE_TAG"
           fi

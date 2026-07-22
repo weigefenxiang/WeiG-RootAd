@@ -44,7 +44,7 @@ final class RootShell {
                 } catch (Exception ignored) {
                     // A forced timeout closes the stream; the timeout result below is authoritative.
                 }
-            }, "rootad-root-output");
+            }, "zeroad-root-output");
             readerThread.setDaemon(true);
             readerThread.start();
             if (!process.waitFor(25, TimeUnit.SECONDS)) {

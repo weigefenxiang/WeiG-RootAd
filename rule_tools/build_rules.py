@@ -7,7 +7,7 @@ from rule_tools.rules import compile_profiles
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build deterministic Wei.G RootAd rule profiles")
+    parser = argparse.ArgumentParser(description="Build deterministic Wei.G ZeroAd fallback profiles")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--version", type=int)
     args = parser.parse_args()

@@ -24,8 +24,8 @@ body:
   - type: input
     id: environment
     attributes:
-      label: Android, Root, profile, and rule version / 环境
-      placeholder: Android 16, KernelSU, strict, 2026072102
+      label: Android, Root, domestic/global profiles, and rule version / 环境
+      placeholder: Android 16, KernelSU, domestic lean, global off, 2026072301
     validations:
       required: true
   - type: textarea

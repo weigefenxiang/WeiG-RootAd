@@ -1,7 +1,7 @@
 [project]
-name = "weig-rootad-rule-tools"
+name = "weig-zeroad-rule-tools"
 version = "0.1.0"
-description = "Reproducible rule compiler for Wei.G RootAd"
+description = "Reproducible offline rule compiler for Wei.G ZeroAd"
 requires-python = ">=3.10"
 
 [tool.ruff]

@@ -12,7 +12,8 @@ record RootStatus(
         boolean protection,
         boolean healthy,
         String root,
-        String profile,
+        String cnProfile,
+        String globalProfile,
         long ruleVersion,
         int compiled,
         int running,
@@ -48,13 +49,16 @@ record RootStatus(
             Set<String> packs = new HashSet<>();
             String packList = json.optString("enabled_packs", "");
             if (!packList.isBlank()) packs.addAll(Arrays.asList(packList.split(",")));
+            String legacy = json.optString("profile", "lean");
             return new RootStatus(true, json.optBoolean("pending_reboot"),
-                    json.optBoolean("protection_enabled"),
-                    json.optBoolean("healthy"), json.optString("root_impl", "root"),
-                    json.optString("profile", "strict"), json.optLong("rule_version"),
-                    json.optInt("compiled_rules"), json.optInt("running_rules"),
-                    json.optInt("disabled_rules"), json.optInt("user_block_rules"),
-                    json.optInt("user_allow_rules"), json.optInt("reward_block_rules"),
+                    json.optBoolean("protection_enabled"), json.optBoolean("healthy"),
+                    json.optString("root_impl", "root"),
+                    json.optString("cn_profile", legacy),
+                    json.optString("global_profile", "off"),
+                    json.optLong("rule_version"), json.optInt("compiled_rules"),
+                    json.optInt("running_rules"), json.optInt("disabled_rules"),
+                    json.optInt("user_block_rules"), json.optInt("user_allow_rules"),
+                    json.optInt("reward_block_rules"),
                     json.optBoolean("reward_temporarily_allowed"),
                     json.optLong("reward_expires_at"), Set.copyOf(packs), "");
         } catch (Exception error) {
@@ -66,7 +70,7 @@ record RootStatus(
     boolean requiresReboot() { return pendingReboot || (installed && !healthy); }
 
     private static RootStatus empty(boolean pending, String error) {
-        return new RootStatus(false, pending, false, false, "unknown", "strict", 0,
+        return new RootStatus(false, pending, false, false, "unknown", "lean", "off", 0,
                 0, 0, 0, 0, 0, 0, false, 0, Set.of(), error);
     }
 }

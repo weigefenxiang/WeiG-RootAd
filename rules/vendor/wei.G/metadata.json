@@ -7,7 +7,6 @@
   "version": "20260723",
   "files": {
     "baseline": "260723.txt",
-    "compatibility": "放行白名单.prop",
-    "reward": "广告奖励.prop"
+    "reward": "reward-ads.domains"
   }
 }

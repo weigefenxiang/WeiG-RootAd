@@ -13,8 +13,8 @@ android {
         versionCode = 2
         versionName = "0.1.0"
         buildConfigField "String", "GITHUB_OWNER", '"weigefenxiang"'
-        buildConfigField "String", "CODE_REPOSITORY", '"WeiG-RootAd"'
-        buildConfigField "String", "RULES_REPOSITORY", '"WeiG-RootAd"'
+        buildConfigField "String", "CODE_REPOSITORY", '"WeiG-ZeroAd"'
+        buildConfigField "String", "RULES_REPOSITORY", '"WeiG-ZeroAd-Rules"'
     }
 
     buildFeatures {

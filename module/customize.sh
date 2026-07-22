@@ -1,6 +1,6 @@
 #!/system/bin/sh
 
-ui_print "- Installing Wei.G RootAd"
+ui_print "- Installing WeiG ZeroAd"
 ui_print "- Creating persistent state"
 
 DATA_DIR=/data/adb/weig_rootad
@@ -15,7 +15,7 @@ set_perm "$MODPATH/service.sh" 0 0 0755
 set_perm "$MODPATH/action.sh" 0 0 0755
 set_perm "$MODPATH/uninstall.sh" 0 0 0755
 
-MANAGER_APK="$MODPATH/manager/WeiG-RootAd-Manager.apk"
+MANAGER_APK="$MODPATH/manager/WeiG-ZeroAd-Manager.apk"
 if [ -f "$MANAGER_APK" ]; then
   ui_print "- All-in-one package: installing manager app"
   if command -v pm >/dev/null 2>&1 && pm install -r "$MANAGER_APK" >/dev/null 2>&1; then
@@ -30,6 +30,7 @@ else
   ui_print "- Core-only package: manager app was not included"
 fi
 
-ui_print "- Default profile: strict"
+ui_print "- Default profiles: domestic lean, global off"
+ui_print "- Reward-ad blocking packs: enabled"
 ui_print "- Compatible module layout: Magisk / KernelSU / APatch"
 ui_print "- Reboot after installation"

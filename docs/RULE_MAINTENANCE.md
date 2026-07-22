@@ -1,55 +1,40 @@
 # Rule maintenance / 规则维护
 
-## Weekly automation
+Live rules are built in the separate `WeiG-ZeroAd-Rules` repository. The app repository keeps only a Wei.G offline fallback so a newly flashed core can start before its first rule update.
 
-`.github/workflows/rules-sync.yml` runs every Sunday at 03:00 Asia/Singapore and can also be started manually. Weekly execution already satisfies the monthly minimum update requirement.
+在线规则由独立的 `WeiG-ZeroAd-Rules` 仓库构建。应用主仓库只保留 Wei.G 离线兜底，确保刚刷入核心、尚未更新规则时也能启动。
 
-The job reads enabled local or remote entries from `rules/sources.json`, converts supported hosts/adblock/exact-domain formats, lowercases ASCII domains, rejects IP literals and invalid syntax, removes exact duplicates, forcibly excludes the reward set from both base profiles, runs tests, commits the auditable snapshot, and publishes a data-only release.
+## Release contract
 
-Hosts entries are exact. `example.com` does **not** block `ads.example.com`, so the synchronizer deliberately does not remove a subdomain merely because its parent is present.
+The rule repository publishes `WeiG-ZeroAd-Rules.zip` with schema 3. It contains six exact-domain profiles, their hosts exports, the independent reward set and four reward packs, `manifest.json`, `packs.json`, and `health-summary.json`. No executable content is accepted.
 
-The job refuses a source result below 1,000 domains or a one-run size change above 35%. Failed validation produces no release, so installed devices keep the previous rules.
+Publish at least one rules Release before pushing/tagging the manager repository. The manager Release workflow fails closed if no verified rules asset is available, rather than shipping three misleading fallback choices.
 
-每周日新加坡时间 03:00 自动同步，也能在 Actions 中手动运行。流程会读取本地或远程来源、统一格式、精确去重、排除无效 IP/域名、从严格和平衡中强制移除奖励集合、构建规则与可选包、测试并发布纯数据 ZIP。单次变化超过 35% 或结果少于 1,000 条时拒绝发布。
-
-## Versions
-
-- Initial manager/core: `0.1.0`, Android `versionCode=1`.
-- Later display version: `YY.DD.MM`, for example `26.21.07`; always increment `versionCode`.
-- Rule release: `rules-YYYYMMDDNN`; its manifest stores numeric `YYYYMMDDNN`.
-
-## GitHub setup
-
-Change these values in `app/build.gradle` before the first public build:
+The manager repository is configured in `app/build.gradle`:
 
 ```groovy
-GITHUB_OWNER = "your-account"
-CODE_REPOSITORY = "WeiG-RootAd"
-RULES_REPOSITORY = "WeiG-RootAd"
+GITHUB_OWNER = "weigefenxiang"
+CODE_REPOSITORY = "WeiG-ZeroAd"
+RULES_REPOSITORY = "WeiG-ZeroAd-Rules"
 ```
 
-The first release keeps code and rules in one repository; the manager searches recent Releases for the correct asset type, so weekly rule releases do not hide APK/core releases. If you later split the rules into `WeiG-RootAd-Rules`, move `rules/`, `rule_tools/`, the rule tests, and `rules-sync.yml`, then change only `RULES_REPOSITORY`; keep the release contract unchanged.
+## Manager signing
 
-Create a protected GitHub environment named `release` and add:
+Create a GitHub environment named `release` and add:
 
 - `ROOTAD_KEYSTORE_BASE64`
 - `ROOTAD_KEYSTORE_PASSWORD`
 - `ROOTAD_KEY_ALIAS`
 - `ROOTAD_KEY_PASSWORD`
 
-Do not enable required reviewers on that environment if every push/tag must publish without an approval click.
+Do not enable required reviewers if every push/tag should publish automatically. Keep the original keystore offline; changing it prevents Android from installing later APK updates over the existing app.
 
-Keep the original keystore offline. Losing it prevents future APK updates; changing it will be rejected by Android and by the manager's certificate check.
+## Versions
 
-## Adding a source
+- Initial manager/core: `0.1.0`, Android `versionCode=1`.
+- Later manager display versions may use `YY.DD.MM`; always increase `versionCode`.
+- Rule versions are independent numeric `YYYYMMDDNN` values.
 
-Add a stable source ID, `type` (`local` or `remote`), path/URL, and compatible license to `rules/sources.json`, then run:
+## Weekly rule job
 
-```bash
-python -m rule_tools.sync_upstreams --date 2026-07-21
-python -m rule_tools.build_rules
-python -m unittest discover -s tests -v
-python -m rule_tools.build_rule_release
-```
-
-Review the JSON report under `rules/reports/`, profile-count differences, additions/removals, and reward compatibility before merging.
+The rules repository runs every Sunday at 03:00 Asia/Singapore. Four upstream downloads and sixteen DNS shards run in parallel. A domain is removed from Lean only after three consecutive weekly NXDOMAIN observations; timeouts and SERVFAIL are retained as unknown. Generated changes above the configured safety limit stop publication for review.

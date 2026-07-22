@@ -1,1 +1,1 @@
-"""Wei.G RootAd rule import and compilation tools."""
+"""Wei.G ZeroAd offline rule and module build tools."""

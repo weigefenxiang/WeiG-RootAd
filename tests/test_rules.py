@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import json
-import datetime as dt
+import hashlib
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
-from unittest.mock import patch
 
-from rule_tools.build_module import build, file_sha256
-from rule_tools.build_rule_release import FILES, build as build_rule_release
+from rule_tools.build_module import LIVE_RELEASE_FILES, build, file_sha256
 from rule_tools.rules import compile_profiles, domains_from_line, normalize_domain
-from rule_tools.sync_upstreams import sync
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +63,72 @@ class GeneratedRuleTests(unittest.TestCase):
 
 
 class ModuleBuildTests(unittest.TestCase):
+    @staticmethod
+    def make_live_rules_zip(path: Path) -> None:
+        profile_sets = {
+            "cn-lean": {"lean.cn"},
+            "cn-balanced": {"balanced.cn", "lean.cn"},
+            "cn-strict": {"balanced.cn", "lean.cn", "strict.cn"},
+            "global-lean": {"lean.global"},
+            "global-balanced": {"balanced.global", "lean.global"},
+            "global-strict": {"balanced.global", "lean.global", "strict.global"},
+        }
+        pack_sets = {
+            "reward-tencent.domains": {"reward.tencent.example"},
+            "reward-wechat.domains": {"reward.wechat.example"},
+            "reward-short-video.domains": {"reward.video.example"},
+            "reward-other.domains": {"reward.other.example"},
+        }
+        blobs: dict[str, bytes] = {}
+        profiles: dict[str, dict[str, object]] = {"cn": {}, "global": {}}
+        for name, domains in profile_sets.items():
+            domain_name = f"{name}.domains"
+            hosts_name = f"{name}.hosts"
+            blobs[domain_name] = ("# test\n" + "\n".join(sorted(domains)) + "\n").encode()
+            blobs[hosts_name] = ("# test\n" + "\n".join(
+                f"0.0.0.0 {domain}" for domain in sorted(domains)
+            ) + "\n").encode()
+            region, level = name.split("-", 1)
+            profiles[region][level] = {
+                "rules": len(domains),
+                "domains_file": domain_name,
+                "hosts_file": hosts_name,
+                "domains_sha256": hashlib.sha256(blobs[domain_name]).hexdigest(),
+                "hosts_sha256": hashlib.sha256(blobs[hosts_name]).hexdigest(),
+            }
+        reward = set().union(*pack_sets.values())
+        blobs["reward-ads.domains"] = ("# test\n" + "\n".join(sorted(reward)) + "\n").encode()
+        packs = []
+        ids = ["reward.tencent", "reward.wechat", "reward.short-video", "reward.other"]
+        for pack_id, (name, domains) in zip(ids, pack_sets.items()):
+            blobs[name] = ("# test\n" + "\n".join(sorted(domains)) + "\n").encode()
+            packs.append({
+                "id": pack_id,
+                "file": name,
+                "rules": len(domains),
+                "domains_sha256": hashlib.sha256(blobs[name]).hexdigest(),
+            })
+        manifest = {
+            "schema": 3,
+            "version": 2026072301,
+            "profiles": profiles,
+            "reward": {
+                "rules": len(reward),
+                "domains_file": "reward-ads.domains",
+                "domains_sha256": hashlib.sha256(blobs["reward-ads.domains"]).hexdigest(),
+            },
+            "packs": packs,
+        }
+        blobs["manifest.json"] = json.dumps(manifest).encode()
+        blobs["packs.json"] = json.dumps({"schema": 1, "packs": packs}).encode()
+        blobs["health-summary.json"] = b'{"schema":1}'
+        self_names = set(blobs)
+        if self_names != LIVE_RELEASE_FILES:
+            raise AssertionError((self_names, LIVE_RELEASE_FILES))
+        with zipfile.ZipFile(path, "w") as archive:
+            for name, data in blobs.items():
+                archive.writestr(name, data)
+
     def test_module_zip_is_reproducible_and_executable(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             first = Path(temp_dir) / "first.zip"
@@ -77,7 +140,10 @@ class ModuleBuildTests(unittest.TestCase):
             with zipfile.ZipFile(first) as archive:
                 names = archive.namelist()
                 self.assertTrue(all(not name.startswith("/") and ".." not in Path(name).parts for name in names))
-                self.assertNotIn("manager/WeiG-RootAd-Manager.apk", names)
+                self.assertNotIn("manager/WeiG-ZeroAd-Manager.apk", names)
+                self.assertIn("rules/cn-lean.domains", names)
+                self.assertIn("rules/global-strict.domains", names)
+                self.assertIn("rules/reward-ads.domains", names)
                 self.assertEqual((archive.getinfo("bin/rulectl").external_attr >> 16) & 0o777, 0o755)
                 self.assertEqual((archive.getinfo("module.prop").external_attr >> 16) & 0o777, 0o644)
 
@@ -90,38 +156,44 @@ class ModuleBuildTests(unittest.TestCase):
 
             with zipfile.ZipFile(output) as archive:
                 self.assertEqual(
-                    archive.read("manager/WeiG-RootAd-Manager.apk"),
+                    archive.read("manager/WeiG-ZeroAd-Manager.apk"),
                     b"signed-apk-placeholder",
                 )
                 self.assertIn("module.prop", archive.namelist())
                 self.assertIn("system/etc/hosts", archive.namelist())
 
-
-class RuleReleaseTests(unittest.TestCase):
-    def test_data_release_contains_only_allowed_files(self) -> None:
+    def test_module_embeds_validated_live_six_profile_rules(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            output = Path(temp_dir) / "rules.zip"
-            build_rule_release(ROOT, output)
+            rules_zip = Path(temp_dir) / "rules.zip"
+            output = Path(temp_dir) / "core.zip"
+            self.make_live_rules_zip(rules_zip)
+            build(ROOT, output, rules_zip=rules_zip)
             with zipfile.ZipFile(output) as archive:
-                self.assertEqual(set(archive.namelist()), set(FILES))
+                self.assertIn(b"lean.cn", archive.read("rules/cn-lean.domains"))
+                manifest = json.loads(archive.read("rules/manifest.json"))
+                self.assertEqual(manifest["schema"], 3)
 
-    def test_weekly_sync_exactly_deduplicates(self) -> None:
+    def test_invalid_live_rules_can_fall_back_to_owned_base(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            (root / "rules").mkdir()
-            (root / "rules/sources.json").write_text(json.dumps({
-                "schema": 1,
-                "sources": [{"id": "test", "url": "https://example.invalid/rules", "license": "test"}],
-            }), encoding="utf-8")
-            lines = [f"0.0.0.0 ad{i}.example.com" for i in range(1_200)]
-            lines.extend(["0.0.0.0 ad1.example.com", "not a domain", "# comment"])
-            with patch("rule_tools.sync_upstreams.fetch", return_value="\n".join(lines)):
-                report = sync(root, dt.date(2026, 7, 21))
-            self.assertEqual(report["unique_domains"], 1_200)
-            self.assertEqual(report["duplicates_removed"], 1)
-            self.assertEqual(report["version"], 2026072101)
-            saved = (root / "rules/vendor/wei.G/260723.txt").read_text(encoding="utf-8")
-            self.assertEqual(saved.count("ad1.example.com\n"), 1)
+            invalid_rules = Path(temp_dir) / "invalid-rules.zip"
+            output = Path(temp_dir) / "core.zip"
+            with zipfile.ZipFile(invalid_rules, "w") as archive:
+                archive.writestr("unexpected.txt", "broken update")
+
+            mode = build(
+                ROOT,
+                output,
+                rules_zip=invalid_rules,
+                allow_rules_fallback=True,
+            )
+
+            self.assertEqual(mode, "offline-fallback")
+            with zipfile.ZipFile(output) as archive:
+                manifest = json.loads(archive.read("rules/manifest.json"))
+                self.assertEqual(manifest["schema"], 2)
+                cn_lean = archive.read("rules/cn-lean.domains").decode("utf-8")
+                self.assertIn("0127.adsame.com", cn_lean)
+                self.assertNotIn("adsmind.gdtimg.com", cn_lean)
 
 
 if __name__ == "__main__":
